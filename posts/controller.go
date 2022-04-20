@@ -27,8 +27,8 @@ func NewPostsController(echo *echo.Echo, repository *db.Repository, config *conf
 
 func (controller *PostsController) UseRoute() {
 	postsService := NewPostsService(controller.config, controller.repository)
-	controller.POST("/post", func(c echo.Context) error {
-		model := new(ModifyPostModel)
+	controller.POST("/posts", func(c echo.Context) error {
+		model := new(CreatePostModel)
 		err := c.Bind(model)
 		userID, ok := c.Get("userID").(string)
 		if err != nil || !ok {
@@ -82,8 +82,8 @@ func (controller *PostsController) UseRoute() {
 		})
 	})
 
-	controller.PUT("/post/id/:id", func(c echo.Context) error {
-		model := new(ModifyPostModel)
+	controller.PUT("/posts/id/:id", func(c echo.Context) error {
+		model := new(UpdatePostModel)
 		err := c.Bind(model)
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, &db.BadResponse{
@@ -113,7 +113,7 @@ func (controller *PostsController) UseRoute() {
 		})
 	}, *controller.jwtMiddleware)
 
-	controller.DELETE("/post/id/:id", func(c echo.Context) error {
+	controller.DELETE("/posts/id/:id", func(c echo.Context) error {
 		param := c.Param("id")
 		postID, err := strconv.Atoi(param)
 		userID, ok := c.Get("userID").(string)

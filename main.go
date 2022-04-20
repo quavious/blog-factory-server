@@ -9,6 +9,7 @@ import (
 	"github.com/quavious/blog-factory-server/db"
 	"github.com/quavious/blog-factory-server/mail"
 	"github.com/quavious/blog-factory-server/middleware"
+	"github.com/quavious/blog-factory-server/posts"
 	"github.com/quavious/blog-factory-server/users"
 )
 
@@ -21,6 +22,7 @@ func main() {
 	if repository == nil {
 		return
 	}
+	defer repository.Close()
 	mailClient := mail.NewMailClient(config)
 	if mailClient == nil {
 		return
@@ -34,8 +36,10 @@ func main() {
 	})
 	authController := auth.NewAuthController(e, config, repository, &jwtMiddleware, mailClient)
 	usersController := users.NewUsersController(e, config, repository, &jwtMiddleware)
+	postsController := posts.NewPostsController(e, repository, config, &jwtMiddleware)
 
 	authController.UseRoute()
 	usersController.UseRoute()
+	postsController.UseRoute()
 	e.Logger.Fatal(e.Start("localhost:5000"))
 }
