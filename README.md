@@ -9,3 +9,12 @@ The backend api template written in Go.
 - MariaDB
 - Mailjet
 - JWT
+
+## Currently Implemented
+
+- Email Verification with Token
+- Sign Up
+- Sign In
+- Access Token Verification & Refreshment
+- Password Modification
+- User Account
