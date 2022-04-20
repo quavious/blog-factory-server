@@ -135,4 +135,38 @@ func (controller *PostsController) UseRoute() {
 			"message": "The post is deleted.",
 		})
 	}, *controller.jwtMiddleware)
+
+	controller.GET("/posts/tag/:tag/:page", func(c echo.Context) error {
+		tag := c.Param("tag")
+		param := c.Param("page")
+		page, err := strconv.Atoi(param)
+		if err != nil {
+			return c.JSON(http.StatusNotFound, &db.BadResponse{
+				Status:  false,
+				Message: "Invalid page.",
+			})
+		}
+		posts := postsService.PostsByTag(tag, page)
+		return c.JSON(http.StatusOK, echo.Map{
+			"status": true,
+			"posts":  posts,
+		})
+	})
+
+	controller.GET("/posts/search/:keyword/:page", func(c echo.Context) error {
+		keyword := c.Param("keyword")
+		param := c.Param("page")
+		page, err := strconv.Atoi(param)
+		if err != nil {
+			return c.JSON(http.StatusNotFound, &db.BadResponse{
+				Status:  false,
+				Message: "Invalid page.",
+			})
+		}
+		posts := postsService.PostsByKeyword(keyword, page)
+		return c.JSON(http.StatusOK, echo.Map{
+			"status": true,
+			"posts":  posts,
+		})
+	})
 }
