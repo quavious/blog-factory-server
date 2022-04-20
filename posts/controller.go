@@ -11,12 +11,12 @@ import (
 
 type PostsController struct {
 	*echo.Echo
-	repository    *db.Repository
 	config        *config.Config
+	repository    *db.Repository
 	jwtMiddleware *echo.MiddlewareFunc
 }
 
-func NewPostsController(echo *echo.Echo, repository *db.Repository, config *config.Config, jwtMiddleware *echo.MiddlewareFunc) *PostsController {
+func NewPostsController(echo *echo.Echo, config *config.Config, repository *db.Repository, jwtMiddleware *echo.MiddlewareFunc) *PostsController {
 	return &PostsController{
 		Echo:          echo,
 		repository:    repository,

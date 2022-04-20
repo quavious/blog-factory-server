@@ -5,6 +5,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/quavious/blog-factory-server/auth"
+	"github.com/quavious/blog-factory-server/comments"
 	"github.com/quavious/blog-factory-server/config"
 	"github.com/quavious/blog-factory-server/db"
 	"github.com/quavious/blog-factory-server/mail"
@@ -36,10 +37,12 @@ func main() {
 	})
 	authController := auth.NewAuthController(e, config, repository, &jwtMiddleware, mailClient)
 	usersController := users.NewUsersController(e, config, repository, &jwtMiddleware)
-	postsController := posts.NewPostsController(e, repository, config, &jwtMiddleware)
+	postsController := posts.NewPostsController(e, config, repository, &jwtMiddleware)
+	commentsController := comments.NewCommentsController(e, config, repository, &jwtMiddleware)
 
 	authController.UseRoute()
 	usersController.UseRoute()
 	postsController.UseRoute()
+	commentsController.UseRoute()
 	e.Logger.Fatal(e.Start("localhost:5000"))
 }

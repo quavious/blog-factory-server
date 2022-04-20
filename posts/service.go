@@ -20,7 +20,7 @@ func NewPostsService(config *config.Config, repository *db.Repository) *PostsSer
 }
 
 func (service *PostsService) Posts(page int) []PostModel {
-	res, err := service.repository.Query(`
+	rows, err := service.repository.Query(`
 	select p.id, p.title, p.description, p.content, p.created_at, p.updated_at, u.username 
 	from posts as p 
 	join users as u on p.user_id = u.id
@@ -31,12 +31,14 @@ func (service *PostsService) Posts(page int) []PostModel {
 		return nil
 	}
 	posts := []PostModel{}
-	for res.Next() {
+	for rows.Next() {
 		post := new(PostModel)
-		err := res.Scan(&post.ID, &post.Title, &post.Description, &post.Content, &post.CreatedAt, &post.UpdatedAt, &post.Username)
+		err := rows.Scan(&post.ID, &post.Title, &post.Description, &post.Content, &post.CreatedAt, &post.UpdatedAt, &post.Username)
 		if err != nil {
 			log.Println(err.Error())
 		}
+		tags := service.Tags(post.ID)
+		post.Tags = *tags
 		posts = append(posts, *post)
 	}
 	return posts
@@ -53,6 +55,30 @@ func (service *PostsService) Post(postID int) *PostModel {
 	if err != nil {
 		log.Println(err.Error())
 		return nil
+	}
+	rows, err := service.repository.Query(`
+	select c.id, c.content, c.created_at, c.updated_at, u.username
+	from comments as c
+	join posts as p on c.post_id = p.id
+	join users as u on c.user_id = u.id
+	where c.post_id = ?
+	order by c.created_at desc
+	`, post.ID)
+	if err != nil {
+		log.Println(err.Error())
+		post.Comments = []CommentModel{}
+	} else {
+		comments := []CommentModel{}
+		for rows.Next() {
+			comment := new(CommentModel)
+			err := rows.Scan(&comment.ID, &comment.Content, &comment.CreatedAt, &comment.UpdatedAt, &comment.Username)
+			if err != nil {
+				log.Println(err.Error())
+			} else {
+				comments = append(comments, *comment)
+			}
+		}
+		post.Comments = comments
 	}
 	return post
 }
@@ -167,6 +193,8 @@ func (service *PostsService) PostsByTag(tag string, page int) []PostModel {
 	for res.Next() {
 		post := new(PostModel)
 		res.Scan(&post.ID, &post.Title, &post.Description, &post.Content, &post.CreatedAt, &post.UpdatedAt, &post.Username)
+		tags := service.Tags(post.ID)
+		post.Tags = *tags
 		posts = append(posts, *post)
 	}
 	return posts
@@ -188,7 +216,33 @@ func (service *PostsService) PostsByKeyword(keyword string, page int) []PostMode
 	for res.Next() {
 		post := new(PostModel)
 		res.Scan(&post.ID, &post.Title, &post.Description, &post.Content, &post.CreatedAt, &post.UpdatedAt, &post.Username)
+		tags := service.Tags(post.ID)
+		post.Tags = *tags
 		posts = append(posts, *post)
 	}
 	return posts
+}
+
+func (service *PostsService) Tags(postID int) *tagArray {
+	rows, err := service.repository.Query(`
+		select t.tag 
+		from tags as t
+		join posts_and_tags as pt on pt.tag_id = t.id
+		join posts as p on p.id = pt.post_id
+		where p.id = ?`, postID)
+	if err != nil {
+		return new(tagArray)
+	} else {
+		tags := new(tagArray)
+		for rows.Next() {
+			var tag string
+			err := rows.Scan(&tag)
+			if err != nil {
+				log.Println(err.Error())
+			} else {
+				*tags = append(*tags, tag)
+			}
+		}
+		return tags
+	}
 }
