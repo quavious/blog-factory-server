@@ -10,10 +10,10 @@ import (
 )
 
 type AuthController struct {
+	*echo.Echo
 	repository    *db.Repository
 	config        *config.Config
-	echo          *echo.Echo
-	jwtMiddleware *(func(echo.HandlerFunc) echo.HandlerFunc)
+	jwtMiddleware *echo.MiddlewareFunc
 	mailClient    *mail.MailClient
 }
 
@@ -21,21 +21,21 @@ func NewAuthController(
 	echo *echo.Echo,
 	config *config.Config,
 	repository *db.Repository,
-	jwtMiddleware *(func(echo.HandlerFunc) echo.HandlerFunc),
+	jwtMiddleware *echo.MiddlewareFunc,
 	mailClient *mail.MailClient,
 ) *AuthController {
 	return &AuthController{
 		repository:    repository,
 		config:        config,
-		echo:          echo,
+		Echo:          echo,
 		jwtMiddleware: jwtMiddleware,
 		mailClient:    mailClient,
 	}
 }
 
-func (controller *AuthController) Route() {
+func (controller *AuthController) UseRoute() {
 	authService := NewAuthService(controller.repository, controller.mailClient, controller.config)
-	controller.echo.POST("/auth/sign-up", func(c echo.Context) error {
+	controller.POST("/auth/sign-up", func(c echo.Context) error {
 		model := new(SignUpModel)
 		err := c.Bind(model)
 		if err != nil || model.Password != model.PasswordConfirm {
@@ -58,7 +58,7 @@ func (controller *AuthController) Route() {
 		})
 	})
 
-	controller.echo.POST("/auth/sign-in", func(c echo.Context) error {
+	controller.POST("/auth/sign-in", func(c echo.Context) error {
 		model := new(SignInModel)
 		err := c.Bind(model)
 		if err != nil {
@@ -87,7 +87,7 @@ func (controller *AuthController) Route() {
 		})
 	})
 
-	controller.echo.POST("/auth/email-token", func(c echo.Context) error {
+	controller.POST("/auth/email-token", func(c echo.Context) error {
 		model := new(SendEmailModel)
 		err := c.Bind(model)
 		if err != nil {
@@ -109,7 +109,7 @@ func (controller *AuthController) Route() {
 		})
 	})
 
-	controller.echo.POST("/auth/email-verification", func(c echo.Context) error {
+	controller.POST("/auth/email-verification", func(c echo.Context) error {
 		model := new(VerifyEmailModel)
 		err := c.Bind(model)
 		if err != nil {
@@ -131,7 +131,7 @@ func (controller *AuthController) Route() {
 		})
 	})
 
-	controller.echo.GET("/auth/token-verification", func(c echo.Context) error {
+	controller.GET("/auth/token-verification", func(c echo.Context) error {
 		header := c.Request().Header.Get("Authorization")
 		if len(header) == 0 {
 			return c.JSON(http.StatusForbidden, &db.BadResponse{
@@ -159,7 +159,7 @@ func (controller *AuthController) Route() {
 		})
 	})
 
-	controller.echo.POST("/auth/password-modification", func(c echo.Context) error {
+	controller.POST("/auth/password-modification", func(c echo.Context) error {
 		model := new(ModifyPasswordModel)
 		err := c.Bind(model)
 		if err != nil {

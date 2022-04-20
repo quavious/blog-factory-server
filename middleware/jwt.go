@@ -12,7 +12,7 @@ import (
 	"github.com/quavious/blog-factory-server/db"
 )
 
-func NewJWTMiddleware(config *config.Config) func(echo.HandlerFunc) echo.HandlerFunc {
+func NewJWTMiddleware(config *config.Config) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		jwtAccessSecret, _ := config.GetJWTSecret()
 

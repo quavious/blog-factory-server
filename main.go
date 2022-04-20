@@ -35,7 +35,7 @@ func main() {
 	authController := auth.NewAuthController(e, config, repository, &jwtMiddleware, mailClient)
 	usersController := users.NewUsersController(e, config, repository, &jwtMiddleware)
 
-	authController.Route()
-	usersController.Route()
+	authController.UseRoute()
+	usersController.UseRoute()
 	e.Logger.Fatal(e.Start("localhost:5000"))
 }

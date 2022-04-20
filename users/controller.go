@@ -12,14 +12,14 @@ type UsersController struct {
 	*echo.Echo
 	config        *config.Config
 	repository    *db.Repository
-	jwtMiddleware *(func(echo.HandlerFunc) echo.HandlerFunc)
+	jwtMiddleware *echo.MiddlewareFunc
 }
 
-func NewUsersController(echo *echo.Echo, config *config.Config, repository *db.Repository, jwtMiddleware *(func(echo.HandlerFunc) echo.HandlerFunc)) *UsersController {
+func NewUsersController(echo *echo.Echo, config *config.Config, repository *db.Repository, jwtMiddleware *echo.MiddlewareFunc) *UsersController {
 	return &UsersController{Echo: echo, config: config, repository: repository, jwtMiddleware: jwtMiddleware}
 }
 
-func (controller *UsersController) Route() {
+func (controller *UsersController) UseRoute() {
 	userService := NewUsersService(controller.config, controller.repository)
 	controller.GET("/users/account", func(c echo.Context) error {
 		userID := c.Get("userID").(string)
