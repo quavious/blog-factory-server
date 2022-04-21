@@ -29,12 +29,14 @@ func main() {
 		return
 	}
 	jwtMiddleware := middleware.NewJWTMiddleware(config)
+	corsMiddleware := middleware.NewCORSMiddleware()
 	e := echo.New()
 	e.GET("/", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, echo.Map{
 			"message": "Hello Go!",
 		})
 	})
+	e.Use(*corsMiddleware)
 	authController := auth.NewAuthController(e, config, repository, &jwtMiddleware, mailClient)
 	usersController := users.NewUsersController(e, config, repository, &jwtMiddleware)
 	postsController := posts.NewPostsController(e, config, repository, &jwtMiddleware)
