@@ -81,9 +81,8 @@ func (controller *AuthController) UseRoute() {
 			MaxAge:   7 * 24 * 60 * 60,
 		})
 		return c.JSON(http.StatusOK, echo.Map{
-			"status":      true,
-			"accessToken": tokens.AccessToken,
-			"message":     "A user logged in.",
+			"status":  true,
+			"message": "The confirmation email is sent.",
 		})
 	})
 
@@ -193,4 +192,51 @@ func (controller *AuthController) UseRoute() {
 			"message": "The password was changed.",
 		})
 	})
+
+	controller.POST("/auth/password-restoration", func(c echo.Context) error {
+		model := new(RestorePasswordModel)
+		err := c.Bind(model)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, &db.BadResponse{
+				Status:  false,
+				Message: "Invalid data form.",
+			})
+		}
+		isOK := authService.RestorePassword(model)
+		if !isOK {
+			return c.JSON(http.StatusBadRequest, &db.BadResponse{
+				Status:  false,
+				Message: "Restoring password is failed.",
+			})
+		}
+		return c.JSON(http.StatusCreated, echo.Map{
+			"status":  true,
+			"message": "Password is recovered.",
+		})
+	})
+
+	// Not fully implemented
+	// controller.POST("/auth/sign-in-confirmation", func(c echo.Context) error {
+	// 	model := new(VerifyEmailModel)
+	// 	err := c.Bind(model)
+	// 	if err != nil {
+	// 		log.Println(err.Error())
+	// 		return c.JSON(http.StatusBadRequest, &db.BadResponse{
+	// 			Status:  false,
+	// 			Message: "Signing user is failed.",
+	// 		})
+	// 	}
+	// 	isOK := authService.ConfirmSignIn(model)
+	// 	if isOK {
+	// 		return c.JSON(http.StatusBadRequest, &db.BadResponse{
+	// 			Status:  false,
+	// 			Message: "Signing user is failed.",
+	// 		})
+	// 	}
+	// 	return c.JSON(http.StatusBadRequest, echo.Map{
+	// 		"status":  true,
+	// 		"accessToken": tokens.AccessToken,
+	// 		"message": "A user logged in.",
+	// 	})
+	// })
 }

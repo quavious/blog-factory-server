@@ -39,3 +39,9 @@ type ModifyPasswordModel struct {
 	NewPassword        string `json:"newPassword"`
 	NewPasswordConfirm string `json:"newPasswordConfirm"`
 }
+
+type RestorePasswordModel struct {
+	Email              string `json:"email"`
+	NewPassword        string `json:"newPassword"`
+	NewPasswordConfirm string `json:"newPasswordConfirm"`
+}

@@ -180,6 +180,23 @@ func (service *AuthService) ModifyPassword(userID string, model *ModifyPasswordM
 	return true
 }
 
+func (service *AuthService) RestorePassword(model *RestorePasswordModel) bool {
+	if model.NewPassword != model.NewPasswordConfirm {
+		return false
+	}
+	hash, err := utils.Hash(model.NewPassword)
+	if err != nil {
+		log.Println("error: hashing password is failed")
+		return false
+	}
+	_, err = service.repository.Exec(`update users set password = ? where email = ?`, hash, model.Email)
+	if err != nil {
+		log.Println(err.Error())
+		return false
+	}
+	return true
+}
+
 func (service *AuthService) confirmJWTToken(tokens *JWTToken) *string {
 	jwtAccessSecret, jwtRefreshSecret := service.config.GetJWTSecret()
 	accessToken, err := jwt.Parse(tokens.AccessToken, func(token *jwt.Token) (interface{}, error) {
@@ -240,3 +257,14 @@ func (service *AuthService) confirmJWTToken(tokens *JWTToken) *string {
 	}
 	return &newAccessToken
 }
+
+// Not fully implemented
+// func (service *AuthService) ConfirmSignIn(model *VerifyEmailModel) bool {
+// 	var expiredAt time.Time
+// 	row := service.repository.QueryRow("select expired_at from email_tokens where email = ? and token = ? order by id desc", model.Email, model.Token)
+// 	err := row.Scan(&expiredAt)
+// 	if err != nil || !expiredAt.After(time.Now()) {
+// 		return false
+// 	}
+// 	return true
+// }
