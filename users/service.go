@@ -21,8 +21,8 @@ func NewUsersService(config *config.Config, repository *db.Repository) *UsersSer
 
 func (service *UsersService) GetAccount(userID string) *UserAccount {
 	model := new(UserAccount)
-	row := service.repository.QueryRow("select id, email, username from users where id = ?", userID)
-	err := row.Scan(&model.ID, &model.Email, &model.Username)
+	row := service.repository.QueryRow("select id, email, username, is_admin from users where id = ?", userID)
+	err := row.Scan(&model.ID, &model.Email, &model.Username, &model.IsAdmin)
 	if err != nil {
 		log.Println("error: no users with this id.")
 		return nil
