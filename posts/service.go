@@ -62,7 +62,7 @@ func (service *PostsService) Post(postID int) *PostModel {
 	join posts as p on c.post_id = p.id
 	join users as u on c.user_id = u.id
 	where c.post_id = ?
-	order by c.created_at desc
+	order by c.created_at asc
 	`, post.ID)
 	if err != nil {
 		log.Println(err.Error())
@@ -80,6 +80,7 @@ func (service *PostsService) Post(postID int) *PostModel {
 		}
 		post.Comments = comments
 	}
+	post.Tags = *service.Tags(post.ID)
 	return post
 }
 

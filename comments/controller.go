@@ -82,11 +82,11 @@ func (controller *CommentsController) UseRoute() {
 		}
 		return c.JSON(http.StatusCreated, echo.Map{
 			"status":  true,
-			"message": "New comment is created.",
+			"message": "New comment is updated.",
 		})
 	}, *controller.jwtMiddleware)
 
-	controller.DELETE("/commennts/:id", func(c echo.Context) error {
+	controller.DELETE("/comments/:id", func(c echo.Context) error {
 		param := c.Param("id")
 		id, err := strconv.Atoi(param)
 		if err != nil || id < 1 {
