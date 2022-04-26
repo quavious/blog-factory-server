@@ -67,8 +67,8 @@ func (controller *AuthController) UseRoute() {
 				Message: "Invalid data form.",
 			})
 		}
-		tokens := authService.SignIn(model)
-		if tokens == nil {
+		tokens, user := authService.SignIn(model)
+		if tokens == nil || user == nil {
 			return c.JSON(http.StatusBadRequest, &db.BadResponse{
 				Status:  false,
 				Message: "Signing user is failed.",
@@ -77,14 +77,36 @@ func (controller *AuthController) UseRoute() {
 		c.SetCookie(&http.Cookie{
 			Name:     "refreshToken",
 			Value:    tokens.RefreshToken,
-			HttpOnly: true,
+			HttpOnly: false,
 			MaxAge:   7 * 24 * 60 * 60,
+			Path:     "/",
+			SameSite: http.SameSiteNoneMode,
+			Secure:   true,
+		})
+		return c.JSON(http.StatusOK, echo.Map{
+			"status":      true,
+			"accessToken": tokens.AccessToken,
+			"username":    user.Username,
+			"isAdmin":     user.IsAdmin,
+			"message":     "A user logged in.",
+		})
+	})
+
+	controller.POST("/auth/sign-out", func(c echo.Context) error {
+		c.SetCookie(&http.Cookie{
+			Name:     "refreshToken",
+			Value:    "token is cleared.",
+			HttpOnly: false,
+			MaxAge:   -1000,
+			Path:     "/",
+			SameSite: http.SameSiteNoneMode,
+			Secure:   true,
 		})
 		return c.JSON(http.StatusOK, echo.Map{
 			"status":  true,
-			"message": "The confirmation email is sent.",
+			"message": "The post is deleted.",
 		})
-	})
+	}, *controller.jwtMiddleware)
 
 	controller.POST("/auth/email-token", func(c echo.Context) error {
 		model := new(SendEmailModel)

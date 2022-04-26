@@ -55,25 +55,25 @@ func (service *AuthService) SignUp(model *SignUpModel) bool {
 	}
 	_, err = service.repository.Exec("insert into users (id, email, username, password) values (?, ?, ?, ?)", uuid.String(), model.Email, model.Username, password)
 	if err != nil {
-		log.Println("error: new password insertion is failed.")
+		log.Println("error: new user insertion is failed.")
 		return false
 	}
 	return true
 }
 
-func (service *AuthService) SignIn(model *SignInModel) *JWTToken {
+func (service *AuthService) SignIn(model *SignInModel) (*JWTToken, *users.User) {
 	jwtAccessSecret, jwtRefreshSecret := service.config.GetJWTSecret()
-	row := service.repository.QueryRow("select id, email, password, username from users where email = ?", model.Email)
+	row := service.repository.QueryRow("select id, email, password, username, is_admin from users where email = ?", model.Email)
 	user := new(users.User)
-	err := row.Scan(&user.ID, &user.Email, &user.Password, &user.Username)
+	err := row.Scan(&user.ID, &user.Email, &user.Password, &user.Username, &user.IsAdmin)
 	if err != nil {
 		log.Println(err)
-		return nil
+		return nil, nil
 	}
 	isOK, err := utils.Verify(model.Password, user.Password)
 	if err != nil || !isOK {
 		log.Println("error: password does not match.")
-		return nil
+		return nil, nil
 	}
 	accessTokenclaims := JWTBody{
 		UserID: user.ID,
@@ -90,27 +90,44 @@ func (service *AuthService) SignIn(model *SignInModel) *JWTToken {
 	}
 	accessToken, err := (jwt.NewWithClaims(jwt.SigningMethodHS256, accessTokenclaims)).SignedString([]byte(jwtAccessSecret))
 	if err != nil {
-		return nil
+		return nil, nil
 	}
 	refreshToken, err := (jwt.NewWithClaims(jwt.SigningMethodHS256, refreshTokenclaims)).SignedString([]byte(jwtRefreshSecret))
 	if err != nil {
-		return nil
+		return nil, nil
 	}
 	hashedRefreshToken, err := utils.Hash(refreshToken)
 	if err != nil {
-		return nil
+		return nil, nil
 	}
 	_, err = service.repository.Exec("update users set hashed_refresh_token = ? where id = ?", hashedRefreshToken, user.ID)
 	if err != nil {
-		return nil
+		return nil, nil
 	}
-	return &JWTToken{AccessToken: accessToken, RefreshToken: refreshToken}
+	jwtToken := &JWTToken{AccessToken: accessToken, RefreshToken: refreshToken}
+	return jwtToken, user
+}
+
+func (service *AuthService) SignOut() bool {
+	return true
 }
 
 func (service *AuthService) SendEmail(model *SendEmailModel) bool {
+	num := 0
+	rows, err := service.repository.Query("select email from users where email = ?", model.Email)
+	if err != nil {
+		log.Println(err.Error())
+		return false
+	}
+	for rows.Next() {
+		num++
+	}
+	if num > 0 {
+		return false
+	}
 	emailToken := utils.NewEmailToken()
 	expiredAt := time.Now().Add(time.Minute * 10)
-	_, err := service.repository.Exec("insert into email_tokens (email, token, expired_at) values (?, ?, ?)", model.Email, emailToken, expiredAt)
+	_, err = service.repository.Exec("insert into email_tokens (email, token, expired_at) values (?, ?, ?)", model.Email, emailToken, expiredAt)
 	if err != nil {
 		log.Println(err)
 		return false
@@ -129,7 +146,7 @@ func (service *AuthService) VerifyEmail(model *VerifyEmailModel) bool {
 	if err != nil || !expiredAt.After(time.Now()) {
 		return false
 	}
-	_, err = service.repository.Exec("insert into verified_emails (email) values (?)", model.Email)
+	_, err = service.repository.Exec("insert ignore into verified_emails (email) values (?)", model.Email)
 	if err != nil {
 		return false
 	}

@@ -11,17 +11,19 @@ import (
 
 type PostsController struct {
 	*echo.Echo
-	config        *config.Config
-	repository    *db.Repository
-	jwtMiddleware *echo.MiddlewareFunc
+	config          *config.Config
+	repository      *db.Repository
+	jwtMiddleware   *echo.MiddlewareFunc
+	adminMiddleware *echo.MiddlewareFunc
 }
 
-func NewPostsController(echo *echo.Echo, config *config.Config, repository *db.Repository, jwtMiddleware *echo.MiddlewareFunc) *PostsController {
+func NewPostsController(echo *echo.Echo, config *config.Config, repository *db.Repository, jwtMiddleware *echo.MiddlewareFunc, adminMiddleware *echo.MiddlewareFunc) *PostsController {
 	return &PostsController{
-		Echo:          echo,
-		repository:    repository,
-		config:        config,
-		jwtMiddleware: jwtMiddleware,
+		Echo:            echo,
+		repository:      repository,
+		config:          config,
+		jwtMiddleware:   jwtMiddleware,
+		adminMiddleware: adminMiddleware,
 	}
 }
 
@@ -48,7 +50,7 @@ func (controller *PostsController) UseRoute() {
 			"status":  true,
 			"message": "New post is created.",
 		})
-	}, *controller.jwtMiddleware)
+	}, *controller.jwtMiddleware, *controller.adminMiddleware)
 
 	controller.GET("/posts/:page", func(c echo.Context) error {
 		param := c.Param("page")
@@ -75,10 +77,11 @@ func (controller *PostsController) UseRoute() {
 				Message: "Invalid post id.",
 			})
 		}
-		post := postsService.Post(id)
+		post, comments := postsService.Post(id)
 		return c.JSON(http.StatusOK, echo.Map{
-			"status": true,
-			"post":   post,
+			"status":   true,
+			"post":     post,
+			"comments": comments,
 		})
 	})
 
@@ -111,7 +114,7 @@ func (controller *PostsController) UseRoute() {
 			"status":  true,
 			"message": "The post is updated.",
 		})
-	}, *controller.jwtMiddleware)
+	}, *controller.jwtMiddleware, *controller.adminMiddleware)
 
 	controller.DELETE("/posts/id/:id", func(c echo.Context) error {
 		param := c.Param("id")
@@ -134,7 +137,7 @@ func (controller *PostsController) UseRoute() {
 			"status":  true,
 			"message": "The post is deleted.",
 		})
-	}, *controller.jwtMiddleware)
+	}, *controller.jwtMiddleware, *controller.adminMiddleware)
 
 	controller.GET("/posts/tag/:tag/:page", func(c echo.Context) error {
 		tag := c.Param("tag")

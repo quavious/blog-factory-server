@@ -1,8 +1,11 @@
 package posts
 
 import (
+	"fmt"
 	"log"
+	"time"
 
+	cm "github.com/quavious/blog-factory-server/comments"
 	"github.com/quavious/blog-factory-server/config"
 	"github.com/quavious/blog-factory-server/db"
 )
@@ -44,7 +47,7 @@ func (service *PostsService) Posts(page int) []PostModel {
 	return posts
 }
 
-func (service *PostsService) Post(postID int) *PostModel {
+func (service *PostsService) Post(postID int) (*PostModel, *cm.CommentArray) {
 	res := service.repository.QueryRow(`
 	select p.id, p.title, p.description, p.content, p.created_at, p.updated_at, u.username
 	from posts as p
@@ -54,8 +57,9 @@ func (service *PostsService) Post(postID int) *PostModel {
 	err := res.Scan(&post.ID, &post.Title, &post.Description, &post.Content, &post.CreatedAt, &post.UpdatedAt, &post.Username)
 	if err != nil {
 		log.Println(err.Error())
-		return nil
+		return nil, nil
 	}
+	fmt.Println(post.ID, post.CreatedAt)
 	rows, err := service.repository.Query(`
 	select c.id, c.content, c.created_at, c.updated_at, u.username
 	from comments as c
@@ -64,24 +68,22 @@ func (service *PostsService) Post(postID int) *PostModel {
 	where c.post_id = ?
 	order by c.created_at asc
 	`, post.ID)
+	comments := new(cm.CommentArray)
 	if err != nil {
 		log.Println(err.Error())
-		post.Comments = []CommentModel{}
 	} else {
-		comments := []CommentModel{}
 		for rows.Next() {
-			comment := new(CommentModel)
+			comment := new(cm.CommentModel)
 			err := rows.Scan(&comment.ID, &comment.Content, &comment.CreatedAt, &comment.UpdatedAt, &comment.Username)
 			if err != nil {
 				log.Println(err.Error())
 			} else {
-				comments = append(comments, *comment)
+				*comments = append(*comments, *comment)
 			}
 		}
-		post.Comments = comments
 	}
 	post.Tags = *service.Tags(post.ID)
-	return post
+	return post, comments
 }
 
 func (service *PostsService) Create(model *CreatePostModel, userID string) bool {
@@ -110,10 +112,11 @@ func (service *PostsService) Create(model *CreatePostModel, userID string) bool 
 			tags = append(tags, int(inserted))
 		}
 	}
+	createdAt := time.Now().UTC()
 	res, err := service.repository.Exec(`
-	insert into posts (title, description, content, user_id) 
-	values (?, ?, ?, ?)
-	`, model.Title, model.Description, model.Content, userID)
+	insert into posts (title, description, content, created_at, updated_at, user_id) 
+	values (?, ?, ?, ?, ?, ?)
+	`, model.Title, model.Description, model.Content, createdAt, createdAt, userID)
 	if err != nil {
 		log.Println(err.Error())
 		return false
@@ -135,10 +138,11 @@ func (service *PostsService) Create(model *CreatePostModel, userID string) bool 
 }
 
 func (service *PostsService) Update(model *UpdatePostModel, postID int, userID string) bool {
+	updatedAt := time.Now().UTC()
 	res, err := service.repository.Exec(`
 	update posts 
-	set title = ?, description = ?, content = ? where id = ? and user_id = ?
-	`, model.Title, model.Description, model.Content, postID, userID)
+	set title = ?, description = ?, content = ?, updated_at = ? where id = ? and user_id = ?
+	`, model.Title, model.Description, model.Content, updatedAt, postID, userID)
 	if err != nil {
 		log.Println(err.Error())
 		return false
